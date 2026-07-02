@@ -3,6 +3,8 @@ package com.gortona.logitrack.exception;
 import com.gortona.logitrack.dto.common.ApiErrorResponse;
 import com.gortona.logitrack.dto.common.FieldErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +16,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	@ExceptionHandler(ConflictException.class)
 	public ResponseEntity<ApiErrorResponse> handleConflictException(
@@ -120,6 +124,8 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiErrorResponse> handleUnexpectedException(Exception exception, HttpServletRequest request) {
+		log.error("Erro inesperado ao processar {} {}", request.getMethod(), request.getRequestURI(), exception);
+
 		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
 		ApiErrorResponse response = ApiErrorResponse.of(
 				status.value(),
