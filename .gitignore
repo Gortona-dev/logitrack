@@ -1,0 +1,32 @@
+# Sistema / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.github/modernize/
+*.iml
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Backend Java
+logitrack-api/target/
+logitrack-api/.mvn/wrapper/maven-wrapper.jar
+!logitrack-api/**/src/main/**/target/
+!logitrack-api/**/src/test/**/target/
+
+# Frontend Node/Vite
+logitrack-web/node_modules/
+logitrack-web/dist/
+logitrack-web/*.tsbuildinfo
+logitrack-web/vite.config.js
+logitrack-web/vite.config.d.ts
+logitrack-web/qa-*.png
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
