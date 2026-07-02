@@ -25,7 +25,8 @@ public class LogitrackApiApplication {
 
 		URI uri = URI.create(databaseUrl);
 		String[] credentials = uri.getUserInfo().split(":", 2);
-		String jdbcUrl = "jdbc:postgresql://" + uri.getHost() + ":" + uri.getPort() + uri.getPath();
+		String port = uri.getPort() > 0 ? ":" + uri.getPort() : "";
+		String jdbcUrl = "jdbc:postgresql://" + uri.getHost() + port + uri.getPath();
 
 		System.setProperty("spring.datasource.url", jdbcUrl);
 		System.setProperty("spring.datasource.username", decode(credentials[0]));
