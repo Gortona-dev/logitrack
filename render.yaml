@@ -13,7 +13,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: http://localhost:5173,http://127.0.0.1:5173,https://logitrack-web.vercel.app,https://logitrack-e90yq8vzu-gabriels-projects-dde20f6b.vercel.app
 
 databases:
   - name: logitrack-db
