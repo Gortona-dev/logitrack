@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd logitrack-web && npm ci && npm run build",
+  "outputDirectory": "logitrack-web/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
