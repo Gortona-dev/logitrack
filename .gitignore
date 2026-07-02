@@ -4,6 +4,7 @@ Thumbs.db
 .idea/
 .vscode/
 .github/modernize/
+.tools/
 *.iml
 
 # Variáveis de ambiente

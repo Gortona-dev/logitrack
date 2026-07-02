@@ -4,15 +4,21 @@ services:
     runtime: docker
     rootDir: logitrack-api
     plan: free
-    healthCheckPath: /swagger-ui.html
+    healthCheckPath: /api/v1/health
     envVars:
-      - key: DB_URL
-        sync: false
-      - key: DB_USERNAME
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: logitrack-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ALLOWED_ORIGINS
         sync: false
+
+databases:
+  - name: logitrack-db
+    databaseName: logitrack
+    user: logitrack
+    plan: free
+    region: oregon
+    postgresMajorVersion: "18"
