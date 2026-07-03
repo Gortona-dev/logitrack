@@ -2,6 +2,9 @@ package com.gortona.logitrack.repository;
 
 import com.gortona.logitrack.entity.Delivery;
 import com.gortona.logitrack.enums.DeliveryStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -18,6 +21,28 @@ public interface DeliveryRepository extends JpaRepository<Delivery, UUID> {
 	List<Delivery> findByOrderClientId(UUID clientId);
 
 	List<Delivery> findByDeliveryPersonId(UUID deliveryPersonId);
+
+	@EntityGraph(attributePaths = {"order", "order.client", "deliveryPerson", "vehicle"})
+	@Query("""
+			select d from Delivery d
+			join d.order o
+			join o.client c
+			left join d.deliveryPerson dp
+			left join d.vehicle v
+			where (:clientId is null or c.id = :clientId)
+				and (:deliveryPersonId is null or dp.id = :deliveryPersonId)
+				and (:status is null or d.status = :status)
+				and (
+					:search is null
+					or :search = ''
+					or lower(o.trackingCode) like lower(concat('%', :search, '%'))
+					or lower(c.name) like lower(concat('%', :search, '%'))
+					or lower(o.pickupAddress) like lower(concat('%', :search, '%'))
+					or lower(o.deliveryAddress) like lower(concat('%', :search, '%'))
+					or lower(o.description) like lower(concat('%', :search, '%'))
+				)
+			""")
+	Page<Delivery> searchOrders(UUID clientId, UUID deliveryPersonId, DeliveryStatus status, String search, Pageable pageable);
 
 	@Query("""
 			select d.deliveryPerson.id as deliveryPersonId,

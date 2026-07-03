@@ -1297,7 +1297,10 @@ function OrdersPage(props: { showToast: (type: "success" | "error", message: str
   const [orders, setOrders] = useState<Order[]>([]);
   const [history, setHistory] = useState<DeliveryHistory[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState("");
-  const [filters, setFilters] = useState({ clientId: "", deliveryPersonId: "", status: "" });
+  const [filters, setFilters] = useState({ clientId: "", deliveryPersonId: "", status: "", search: "" });
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [orderForm, setOrderForm] = useState(emptyOrder);
   const [assignForm, setAssignForm] = useState({ deliveryPersonId: "", vehicleId: "" });
   const [statusNotes, setStatusNotes] = useState("");
@@ -1305,30 +1308,46 @@ function OrdersPage(props: { showToast: (type: "success" | "error", message: str
   const selectedOrder = useMemo(() => orders.find((order) => order.id === selectedOrderId) ?? orders[0], [orders, selectedOrderId]);
 
   useEffect(() => {
-    loadData();
+    loadOptions();
   }, []);
+
+  useEffect(() => {
+    loadOrders(filters, page);
+  }, [page]);
 
   useEffect(() => {
     if (selectedOrder) loadHistory(selectedOrder.deliveryId);
   }, [selectedOrder?.deliveryId]);
 
-  async function loadData(nextFilters = filters) {
+  async function loadOptions() {
     try {
-      const [clientData, personData, vehicleData, orderData] = await Promise.all([
-        api.listClients().catch(() => []),
-        api.listDeliveryPersons().catch(() => []),
-        api.listVehicles().catch(() => []),
-        api.listOrders({
-          clientId: nextFilters.clientId || undefined,
-          deliveryPersonId: nextFilters.deliveryPersonId || undefined,
-          status: nextFilters.status || undefined,
-        }),
+      const [clientData, personData, vehicleData] = await Promise.all([
+        api.listClientsPage({ page: 0, size: 100 }).then((data) => data.content).catch(() => []),
+        api.listDeliveryPersonsPage({ page: 0, size: 100 }).then((data) => data.content).catch(() => []),
+        api.listVehiclesPage({ page: 0, size: 100 }).then((data) => data.content).catch(() => []),
       ]);
       setClients(clientData);
       setDeliveryPersons(personData);
       setVehicles(vehicleData);
-      setOrders(orderData);
-      setSelectedOrderId((current) => current || orderData[0]?.id || "");
+    } catch (error) {
+      props.showToast("error", getErrorMessage(error));
+    }
+  }
+
+  async function loadOrders(nextFilters = filters, nextPage = page) {
+    try {
+      const data = await api.listOrdersPage({
+        clientId: nextFilters.clientId || undefined,
+        deliveryPersonId: nextFilters.deliveryPersonId || undefined,
+        status: nextFilters.status || undefined,
+        search: nextFilters.search || undefined,
+        page: nextPage,
+        size: 8,
+      });
+      setOrders(data.content);
+      setTotalElements(data.totalElements);
+      setTotalPages(Math.max(data.totalPages, 1));
+      setSelectedOrderId((current) => data.content.some((order) => order.id === current) ? current : data.content[0]?.id || "");
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
     }
@@ -1349,7 +1368,8 @@ function OrdersPage(props: { showToast: (type: "success" | "error", message: str
       setOrderForm(emptyOrder);
       setSelectedOrderId(created.id);
       props.showToast("success", "Pedido criado");
-      await loadData();
+      setPage(0);
+      await loadOrders(filters, 0);
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
     }
@@ -1362,7 +1382,7 @@ function OrdersPage(props: { showToast: (type: "success" | "error", message: str
       await api.assignDelivery(selectedOrder.id, assignForm);
       setAssignForm({ deliveryPersonId: "", vehicleId: "" });
       props.showToast("success", "Entrega atribuída");
-      await loadData();
+      await Promise.all([loadOptions(), loadOrders(filters, page)]);
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
     }
@@ -1374,7 +1394,7 @@ function OrdersPage(props: { showToast: (type: "success" | "error", message: str
       await api.updateDeliveryStatus(selectedOrder.deliveryId, { status, notes: statusNotes });
       setStatusNotes("");
       props.showToast("success", `Status atualizado para ${statusLabels[status]}`);
-      await loadData();
+      await Promise.all([loadOptions(), loadOrders(filters, page)]);
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
     }
@@ -1382,17 +1402,22 @@ function OrdersPage(props: { showToast: (type: "success" | "error", message: str
 
   function applyFilters(event: FormEvent) {
     event.preventDefault();
-    loadData(filters);
+    if (page !== 0) {
+      setPage(0);
+      return;
+    }
+    loadOrders(filters, 0);
   }
 
   const title = props.mode === "driver" ? "Minhas entregas" : props.mode === "client" ? "Meus pedidos" : "Pedidos";
 
   return (
     <>
-      <PageHeader title={title} description="Tela operacional com filtros, detalhes, timeline e atualização de status." onRefresh={() => loadData()} />
+      <PageHeader title={title} description="Tela operacional com filtros, detalhes, timeline e atualização de status." onRefresh={() => Promise.all([loadOptions(), loadOrders(filters, page)])} />
       <section className="content-grid">
-        <Panel title="Lista de pedidos" subtitle={`${orders.length} registros carregados`}>
+        <Panel title="Lista de pedidos" subtitle={`${totalElements} registros encontrados`}>
           <form className="filters" onSubmit={applyFilters}>
+            <label>Pesquisar<input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Código, cliente ou rota" /></label>
             <label>Cliente<select value={filters.clientId} onChange={(event) => setFilters({ ...filters, clientId: event.target.value })}><option value="">Todos</option>{clients.map((client) => <option value={client.id} key={client.id}>{client.name}</option>)}</select></label>
             <label>Entregador<select value={filters.deliveryPersonId} onChange={(event) => setFilters({ ...filters, deliveryPersonId: event.target.value })}><option value="">Todos</option>{deliveryPersons.map((person) => <option value={person.id} key={person.id}>{person.name}</option>)}</select></label>
             <label>Status<select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}><option value="">Todos</option>{Object.entries(statusLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
@@ -1410,6 +1435,11 @@ function OrdersPage(props: { showToast: (type: "success" | "error", message: str
             ))}
           </DataTable>
           {!orders.length && <EmptyState text="Nenhum pedido encontrado." />}
+          <div className="pagination-row">
+            <button className="ghost-button" disabled={page === 0} onClick={() => setPage((current) => Math.max(current - 1, 0))} type="button">Anterior</button>
+            <span>Página {page + 1} de {totalPages}</span>
+            <button className="ghost-button" disabled={page + 1 >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">Próxima</button>
+          </div>
         </Panel>
         <DeliveryDetail
           order={selectedOrder}

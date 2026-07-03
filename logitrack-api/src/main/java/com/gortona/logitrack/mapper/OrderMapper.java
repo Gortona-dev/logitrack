@@ -39,7 +39,7 @@ public class OrderMapper {
 				Objects.nonNull(delivery.getVehicle()) ? delivery.getVehicle().getId() : null,
 				Objects.nonNull(delivery.getVehicle()) ? delivery.getVehicle().getCode() : null,
 				order.getCreatedAt(),
-				order.getUpdatedAt()
+				delivery.getUpdatedAt()
 		);
 	}
 }

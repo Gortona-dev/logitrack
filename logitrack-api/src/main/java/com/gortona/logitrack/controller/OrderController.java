@@ -1,6 +1,7 @@
 package com.gortona.logitrack.controller;
 
 import com.gortona.logitrack.dto.common.ApiResponse;
+import com.gortona.logitrack.dto.common.PageResponse;
 import com.gortona.logitrack.dto.order.CreateOrderRequest;
 import com.gortona.logitrack.dto.order.OrderResponse;
 import com.gortona.logitrack.enums.DeliveryStatus;
@@ -42,6 +43,19 @@ public class OrderController {
 			@RequestParam(required = false) DeliveryStatus status
 	) {
 		List<OrderResponse> response = orderService.findAll(clientId, deliveryPersonId, status);
+		return ResponseEntity.ok(ApiResponse.success("Pedidos consultados com sucesso", response));
+	}
+
+	@GetMapping("/page")
+	public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> findPage(
+			@RequestParam(required = false) UUID clientId,
+			@RequestParam(required = false) UUID deliveryPersonId,
+			@RequestParam(required = false) DeliveryStatus status,
+			@RequestParam(required = false, defaultValue = "") String search,
+			@RequestParam(required = false, defaultValue = "0") int page,
+			@RequestParam(required = false, defaultValue = "10") int size
+	) {
+		PageResponse<OrderResponse> response = orderService.findPage(clientId, deliveryPersonId, status, search, page, size);
 		return ResponseEntity.ok(ApiResponse.success("Pedidos consultados com sucesso", response));
 	}
 

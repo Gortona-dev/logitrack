@@ -132,6 +132,16 @@ export const api = {
     const query = params.toString();
     return request<Order[]>(`/api/v1/orders${query ? `?${query}` : ""}`);
   },
+  listOrdersPage: (filters: { clientId?: string; deliveryPersonId?: string; status?: string; search?: string; page?: number; size?: number }) => {
+    const params = new URLSearchParams();
+    if (filters.clientId) params.set("clientId", filters.clientId);
+    if (filters.deliveryPersonId) params.set("deliveryPersonId", filters.deliveryPersonId);
+    if (filters.status) params.set("status", filters.status);
+    if (filters.search) params.set("search", filters.search);
+    params.set("page", String(filters.page ?? 0));
+    params.set("size", String(filters.size ?? 10));
+    return request<PageResponse<Order>>(`/api/v1/orders/page?${params.toString()}`);
+  },
   createOrder: (body: {
     clientId: string;
     pickupAddress: string;
