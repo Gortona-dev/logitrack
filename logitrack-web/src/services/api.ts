@@ -97,6 +97,13 @@ export const api = {
   deleteClient: (id: string) => request<void>(`/api/v1/clients/${id}`, { method: "DELETE" }),
 
   listDeliveryPersons: () => request<DeliveryPerson[]>("/api/v1/delivery-persons"),
+  listDeliveryPersonsPage: (filters: { search?: string; page?: number; size?: number }) => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set("search", filters.search);
+    params.set("page", String(filters.page ?? 0));
+    params.set("size", String(filters.size ?? 10));
+    return request<PageResponse<DeliveryPerson>>(`/api/v1/delivery-persons/page?${params.toString()}`);
+  },
   createDeliveryPerson: (body: { name: string; email: string; document: string; phone: string }) =>
     request<DeliveryPerson>("/api/v1/delivery-persons", { method: "POST", body: JSON.stringify(body) }),
   updateDeliveryPerson: (id: string, body: { name: string; email: string; document: string; phone: string }) =>
@@ -104,6 +111,13 @@ export const api = {
   deleteDeliveryPerson: (id: string) => request<void>(`/api/v1/delivery-persons/${id}`, { method: "DELETE" }),
 
   listVehicles: () => request<Vehicle[]>("/api/v1/vehicles"),
+  listVehiclesPage: (filters: { search?: string; page?: number; size?: number }) => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set("search", filters.search);
+    params.set("page", String(filters.page ?? 0));
+    params.set("size", String(filters.size ?? 10));
+    return request<PageResponse<Vehicle>>(`/api/v1/vehicles/page?${params.toString()}`);
+  },
   createVehicle: (body: { licensePlate: string; brand: string; model: string }) =>
     request<Vehicle>("/api/v1/vehicles", { method: "POST", body: JSON.stringify(body) }),
   updateVehicle: (id: string, body: { licensePlate: string; brand: string; model: string }) =>

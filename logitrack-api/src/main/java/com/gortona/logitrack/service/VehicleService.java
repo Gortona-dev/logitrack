@@ -1,5 +1,6 @@
 package com.gortona.logitrack.service;
 
+import com.gortona.logitrack.dto.common.PageResponse;
 import com.gortona.logitrack.dto.vehicle.CreateVehicleRequest;
 import com.gortona.logitrack.dto.vehicle.UpdateVehicleRequest;
 import com.gortona.logitrack.dto.vehicle.VehicleResponse;
@@ -12,6 +13,8 @@ import com.gortona.logitrack.mapper.VehicleMapper;
 import com.gortona.logitrack.repository.DeliveryRepository;
 import com.gortona.logitrack.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +53,20 @@ public class VehicleService {
 				.stream()
 				.map(vehicleMapper::toResponse)
 				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public PageResponse<VehicleResponse> findPage(String search, int page, int size) {
+		int safePage = Math.max(page, 0);
+		int safeSize = Math.clamp(size, 1, 50);
+		PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
+		String normalizedSearch = search == null ? "" : search.trim();
+
+		if (normalizedSearch.isBlank()) {
+			return PageResponse.from(vehicleRepository.findByActiveTrue(pageRequest).map(vehicleMapper::toResponse));
+		}
+
+		return PageResponse.from(vehicleRepository.searchActive(normalizedSearch, pageRequest).map(vehicleMapper::toResponse));
 	}
 
 	@Transactional

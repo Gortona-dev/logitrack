@@ -1,5 +1,6 @@
 package com.gortona.logitrack.service;
 
+import com.gortona.logitrack.dto.common.PageResponse;
 import com.gortona.logitrack.dto.deliveryperson.CreateDeliveryPersonRequest;
 import com.gortona.logitrack.dto.deliveryperson.DeliveryPersonResponse;
 import com.gortona.logitrack.dto.deliveryperson.UpdateDeliveryPersonRequest;
@@ -13,6 +14,8 @@ import com.gortona.logitrack.mapper.DeliveryPersonMapper;
 import com.gortona.logitrack.repository.DeliveryRepository;
 import com.gortona.logitrack.repository.DeliveryPersonRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +54,22 @@ public class DeliveryPersonService {
 				.stream()
 				.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, findAssignedVehicle(deliveryPerson)))
 				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public PageResponse<DeliveryPersonResponse> findPage(String search, int page, int size) {
+		int safePage = Math.max(page, 0);
+		int safeSize = Math.clamp(size, 1, 50);
+		PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
+		String normalizedSearch = search == null ? "" : search.trim();
+
+		if (normalizedSearch.isBlank()) {
+			return PageResponse.from(deliveryPersonRepository.findByActiveTrue(pageRequest)
+					.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, findAssignedVehicle(deliveryPerson))));
+		}
+
+		return PageResponse.from(deliveryPersonRepository.searchActive(normalizedSearch, pageRequest)
+				.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, findAssignedVehicle(deliveryPerson))));
 	}
 
 	@Transactional

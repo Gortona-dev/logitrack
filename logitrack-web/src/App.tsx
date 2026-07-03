@@ -902,8 +902,11 @@ function ClientsPage(props: { showToast: (type: "success" | "error", message: st
 
   function applySearch(event: FormEvent) {
     event.preventDefault();
+    if (page === 0) {
+      loadClients();
+      return;
+    }
     setPage(0);
-    loadClients();
   }
 
   function startEdit(client: Client) {
@@ -1045,16 +1048,22 @@ function LegacyClientsPage(props: { showToast: (type: "success" | "error", messa
 function DeliveryPersonsPage(props: { role: Role; showToast: (type: "success" | "error", message: string) => void }) {
   const [people, setPeople] = useState<DeliveryPerson[]>([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [form, setForm] = useState(emptyDeliveryPerson);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadPeople();
-  }, []);
+  }, [page]);
 
   async function loadPeople() {
     try {
-      setPeople(await api.listDeliveryPersons());
+      const data = await api.listDeliveryPersonsPage({ search, page, size: 8 });
+      setPeople(data.content);
+      setTotalPages(data.totalPages);
+      setTotalElements(data.totalElements);
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
     }
@@ -1067,6 +1076,8 @@ function DeliveryPersonsPage(props: { role: Role; showToast: (type: "success" | 
     try {
       await api.deleteDeliveryPerson(person.id);
       props.showToast("success", "Entregador removido");
+      setEditingId(null);
+      setForm(emptyDeliveryPerson);
       await loadPeople();
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
@@ -1098,18 +1109,27 @@ function DeliveryPersonsPage(props: { role: Role; showToast: (type: "success" | 
     }
   }
 
-  const filteredPeople = people.filter((person) =>
-    normalized(`${person.code} ${person.name} ${person.email} ${person.document} ${person.phone} ${person.assignedVehicle ?? ""}`).includes(normalized(search))
-  );
+  function applySearch(event: FormEvent) {
+    event.preventDefault();
+    if (page === 0) {
+      loadPeople();
+      return;
+    }
+    setPage(0);
+  }
 
   return (
     <>
       <PageHeader title="Entregadores" description="Equipe operacional, contatos e status de disponibilidade." onRefresh={loadPeople} />
       <section className="content-grid">
-        <Panel title="Entregadores" subtitle={`${filteredPeople.length} registros`}>
-          <SearchBox value={search} onChange={setSearch} placeholder="Pesquisar entregador" />
-          <DataTable headers={props.role === "ADMIN" ? ["Código", "Nome", "Telefone", "CNH", "Veículo", "Status", "Ações"] : ["Código", "Nome", "Telefone", "CNH", "Veículo", "Status"]}>
-            {filteredPeople.map((person) => (
+        <Panel title="Entregadores" subtitle={`${totalElements} registros encontrados`}>
+          <form className="search-row" onSubmit={applySearch}>
+            <Search size={16} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Pesquisar entregador" />
+            <button className="primary-button" type="submit">Buscar</button>
+          </form>
+          <DataTable headers={["Código", "Nome", "Telefone", "CNH", "Veículo", "Status", "Ações"]}>
+            {people.map((person) => (
               <tr key={person.id} onClick={() => startEditPerson(person)} className={editingId === person.id ? "selected" : ""}>
                 <td>{person.code}</td>
                 <td>{person.name}</td>
@@ -1117,14 +1137,21 @@ function DeliveryPersonsPage(props: { role: Role; showToast: (type: "success" | 
                 <td>{person.document}</td>
                 <td>{person.assignedVehicle ?? "Não atribuído"}</td>
                 <td><AvailabilityPill tone={deliveryPersonStatusTone(person.status)}>{deliveryPersonStatusLabel(person.status)}</AvailabilityPill></td>
-                {props.role === "ADMIN" && (
-                  <td>
-                    <button className="danger-button" type="button" onClick={(event) => { event.stopPropagation(); deleteDeliveryPerson(person); }}>Excluir</button>
-                  </td>
-                )}
+                <td>
+                  <div className="button-row">
+                    <button className="ghost-button" type="button" onClick={(event) => { event.stopPropagation(); startEditPerson(person); }}>Editar</button>
+                    {props.role === "ADMIN" && <button className="danger-button" type="button" onClick={(event) => { event.stopPropagation(); deleteDeliveryPerson(person); }}>Excluir</button>}
+                  </div>
+                </td>
               </tr>
             ))}
           </DataTable>
+          {!people.length && <EmptyState text="Nenhum entregador encontrado." />}
+          <div className="pagination-row">
+            <button className="ghost-button" disabled={page === 0} onClick={() => setPage((current) => Math.max(current - 1, 0))} type="button">Anterior</button>
+            <span>Página {page + 1} de {Math.max(totalPages, 1)}</span>
+            <button className="ghost-button" disabled={page + 1 >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">Próxima</button>
+          </div>
         </Panel>
         <Panel title={editingId ? "Editar entregador" : "Cadastro centralizado"} subtitle="Acesso e vínculo operacional">
           {editingId ? (
@@ -1148,16 +1175,22 @@ function DeliveryPersonsPage(props: { role: Role; showToast: (type: "success" | 
 function VehiclesPage(props: { role: Role; showToast: (type: "success" | "error", message: string) => void }) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [form, setForm] = useState(emptyVehicle);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadVehicles();
-  }, []);
+  }, [page]);
 
   async function loadVehicles() {
     try {
-      setVehicles(await api.listVehicles());
+      const data = await api.listVehiclesPage({ search, page, size: 8 });
+      setVehicles(data.content);
+      setTotalPages(data.totalPages);
+      setTotalElements(data.totalElements);
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
     }
@@ -1188,6 +1221,8 @@ function VehiclesPage(props: { role: Role; showToast: (type: "success" | "error"
     try {
       await api.deleteVehicle(vehicle.id);
       props.showToast("success", "Veículo removido");
+      setEditingId(null);
+      setForm(emptyVehicle);
       await loadVehicles();
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
@@ -1203,35 +1238,51 @@ function VehiclesPage(props: { role: Role; showToast: (type: "success" | "error"
     });
   }
 
-  const filteredVehicles = vehicles.filter((vehicle) =>
-    normalized(`${vehicle.code} ${vehicle.licensePlate} ${vehicle.brand} ${vehicle.model} ${vehicle.status}`).includes(normalized(search))
-  );
+  function applySearch(event: FormEvent) {
+    event.preventDefault();
+    if (page === 0) {
+      loadVehicles();
+      return;
+    }
+    setPage(0);
+  }
 
   return (
     <>
       <PageHeader title="Veículos" description="Frota, disponibilidade e preparação para manutenção." onRefresh={loadVehicles} />
       <section className="content-grid">
-        <Panel title="Frota" subtitle={`${filteredVehicles.length} veículos`}>
-          <SearchBox value={search} onChange={setSearch} placeholder="Pesquisar veículo" />
-          <DataTable headers={props.role === "ADMIN" ? ["Código", "Placa", "Marca", "Modelo", "Status", "Ações"] : ["Código", "Placa", "Marca", "Modelo", "Status"]}>
-            {filteredVehicles.map((vehicle) => (
+        <Panel title="Frota" subtitle={`${totalElements} veículos encontrados`}>
+          <form className="search-row" onSubmit={applySearch}>
+            <Search size={16} />
+            <input value={search} onChange={(event) => setSearch(maskPlate(event.target.value))} placeholder="Pesquisar veículo" />
+            <button className="primary-button" type="submit">Buscar</button>
+          </form>
+          <DataTable headers={["Código", "Placa", "Marca", "Modelo", "Status", "Ações"]}>
+            {vehicles.map((vehicle) => (
               <tr key={vehicle.id} onClick={() => startEditVehicle(vehicle)} className={editingId === vehicle.id ? "selected" : ""}>
                 <td>{vehicle.code}</td>
                 <td>{vehicle.licensePlate}</td>
                 <td>{vehicle.brand}</td>
                 <td>{vehicle.model}</td>
                 <td><AvailabilityPill tone={vehicleStatusTone(vehicle)}>{vehicleStatusLabel(vehicle)}</AvailabilityPill></td>
-                {props.role === "ADMIN" && (
-                  <td>
-                    <button className="danger-button" type="button" onClick={(event) => { event.stopPropagation(); deleteVehicle(vehicle); }}>Excluir</button>
-                  </td>
-                )}
+                <td>
+                  <div className="button-row">
+                    <button className="ghost-button" type="button" onClick={(event) => { event.stopPropagation(); startEditVehicle(vehicle); }}>Editar</button>
+                    {props.role === "ADMIN" && <button className="danger-button" type="button" onClick={(event) => { event.stopPropagation(); deleteVehicle(vehicle); }}>Excluir</button>}
+                  </div>
+                </td>
               </tr>
             ))}
           </DataTable>
+          {!vehicles.length && <EmptyState text="Nenhum veículo encontrado." />}
+          <div className="pagination-row">
+            <button className="ghost-button" disabled={page === 0} onClick={() => setPage((current) => Math.max(current - 1, 0))} type="button">Anterior</button>
+            <span>Página {page + 1} de {Math.max(totalPages, 1)}</span>
+            <button className="ghost-button" disabled={page + 1 >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">Próxima</button>
+          </div>
         </Panel>
         <Panel title={editingId ? "Editar veículo" : "Novo veículo"} subtitle="Cadastro rápido">
-          <QuickVehicleForm form={form} setForm={setForm} onSubmit={submit} />
+          <QuickVehicleForm form={form} setForm={setForm} onSubmit={submit} submitLabel={editingId ? "Salvar veículo" : "Criar veículo"} />
           {editingId && <button className="ghost-button" type="button" onClick={() => { setEditingId(null); setForm(emptyVehicle); }}>Cancelar edição</button>}
         </Panel>
       </section>
@@ -1507,8 +1558,8 @@ function QuickDeliveryPersonForm(props: { form: typeof emptyDeliveryPerson; setF
   return <form className="stack-form" onSubmit={props.onSubmit}><input placeholder="Nome" value={props.form.name} onChange={(event) => props.setForm({ ...props.form, name: event.target.value })} /><input placeholder="Email" value={props.form.email} onChange={(event) => props.setForm({ ...props.form, email: event.target.value.trim().toLowerCase() })} /><input placeholder="CNH ou documento" value={props.form.document} onChange={(event) => props.setForm({ ...props.form, document: onlyDigits(event.target.value, 20) })} /><input placeholder="Telefone" value={props.form.phone} onChange={(event) => props.setForm({ ...props.form, phone: maskPhone(event.target.value) })} /><button className="primary-button" type="submit">Criar entregador</button></form>;
 }
 
-function QuickVehicleForm(props: { form: typeof emptyVehicle; setForm: (value: typeof emptyVehicle) => void; onSubmit: (event: FormEvent) => void }) {
-  return <form className="stack-form" onSubmit={props.onSubmit}><input placeholder="Placa" value={props.form.licensePlate} onChange={(event) => props.setForm({ ...props.form, licensePlate: maskPlate(event.target.value) })} /><input placeholder="Marca" value={props.form.brand} onChange={(event) => props.setForm({ ...props.form, brand: event.target.value })} /><input placeholder="Modelo" value={props.form.model} onChange={(event) => props.setForm({ ...props.form, model: event.target.value })} /><button className="primary-button" type="submit">Criar veículo</button></form>;
+function QuickVehicleForm(props: { form: typeof emptyVehicle; setForm: (value: typeof emptyVehicle) => void; onSubmit: (event: FormEvent) => void; submitLabel?: string }) {
+  return <form className="stack-form" onSubmit={props.onSubmit}><input placeholder="Placa" value={props.form.licensePlate} onChange={(event) => props.setForm({ ...props.form, licensePlate: maskPlate(event.target.value) })} /><input placeholder="Marca" value={props.form.brand} onChange={(event) => props.setForm({ ...props.form, brand: event.target.value })} /><input placeholder="Modelo" value={props.form.model} onChange={(event) => props.setForm({ ...props.form, model: event.target.value })} /><button className="primary-button" type="submit">{props.submitLabel ?? "Criar veículo"}</button></form>;
 }
 
 function QuickOrderForm(props: { form: typeof emptyOrder; setForm: (value: typeof emptyOrder) => void; clients: Client[]; onSubmit: (event: FormEvent) => void }) {
