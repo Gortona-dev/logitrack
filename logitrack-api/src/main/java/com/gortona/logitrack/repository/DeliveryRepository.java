@@ -22,7 +22,11 @@ public interface DeliveryRepository extends JpaRepository<Delivery, UUID> {
 
 	boolean existsByVehicleIdAndStatusIn(UUID vehicleId, List<DeliveryStatus> statuses);
 
+	boolean existsByVehicleIdAndStatusInAndIdNot(UUID vehicleId, List<DeliveryStatus> statuses, UUID id);
+
 	boolean existsByDeliveryPersonIdAndStatusIn(UUID deliveryPersonId, List<DeliveryStatus> statuses);
+
+	boolean existsByDeliveryPersonIdAndStatusInAndIdNot(UUID deliveryPersonId, List<DeliveryStatus> statuses, UUID id);
 
 	long countByStatus(DeliveryStatus status);
 

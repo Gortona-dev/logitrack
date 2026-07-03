@@ -185,7 +185,17 @@ public class DeliveryService {
 	}
 
 	private void releaseDeliveryPerson(Delivery delivery) {
-		if (delivery.getDeliveryPerson() != null) {
+		if (delivery.getDeliveryPerson() == null) {
+			return;
+		}
+
+		boolean personHasActiveDelivery = deliveryRepository.existsByDeliveryPersonIdAndStatusInAndIdNot(
+				delivery.getDeliveryPerson().getId(),
+				ACTIVE_DELIVERY_STATUSES,
+				delivery.getId()
+		);
+
+		if (!personHasActiveDelivery) {
 			delivery.getDeliveryPerson().setStatus(DeliveryPersonStatus.AVAILABLE);
 		}
 	}
@@ -195,9 +205,10 @@ public class DeliveryService {
 			return;
 		}
 
-		boolean vehicleHasActiveDelivery = deliveryRepository.existsByVehicleIdAndStatusIn(
+		boolean vehicleHasActiveDelivery = deliveryRepository.existsByVehicleIdAndStatusInAndIdNot(
 				delivery.getVehicle().getId(),
-				ACTIVE_DELIVERY_STATUSES
+				ACTIVE_DELIVERY_STATUSES,
+				delivery.getId()
 		);
 
 		if (!vehicleHasActiveDelivery && delivery.getVehicle().isActive()) {

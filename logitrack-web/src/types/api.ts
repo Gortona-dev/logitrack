@@ -143,16 +143,35 @@ export interface DashboardDelivery {
   updatedAt: string;
 }
 
+export interface DashboardStatusCount {
+  status: DeliveryStatus;
+  total: number;
+}
+
+export interface DashboardDailyDelivery {
+  date: string;
+  delivered: number;
+}
+
 export interface DashboardOverview {
+  totalOrders: number;
+  totalDeliveries: number;
   pending: number;
   assigned: number;
+  pickedUp: number;
   inTransit: number;
+  delivered: number;
   deliveredToday: number;
   cancelled: number;
   driversAvailable: number;
   driversBusy: number;
+  driversInactive: number;
   activeVehicles: number;
+  vehiclesAvailable: number;
+  vehiclesInUse: number;
   vehiclesInMaintenance: number;
+  statusDistribution: DashboardStatusCount[];
+  deliveredLastSevenDays: DashboardDailyDelivery[];
   latestDeliveries: DashboardDelivery[];
 }
 

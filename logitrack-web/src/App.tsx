@@ -727,9 +727,11 @@ function DashboardPage(props: { showToast: (type: "success" | "error", message: 
   }
 
   const cards = dashboard ? [
+    ["Pedidos totais", dashboard.totalOrders, <ClipboardList size={20} />],
     ["Pedidos pendentes", dashboard.pending, <ClipboardList size={20} />],
     ["Pedidos atribuídos", dashboard.assigned, <Route size={20} />],
     ["Em trânsito", dashboard.inTransit, <Truck size={20} />],
+    ["Entregues", dashboard.delivered, <PackageCheck size={20} />],
     ["Entregues hoje", dashboard.deliveredToday, <PackageCheck size={20} />],
     ["Cancelados", dashboard.cancelled, <ClipboardList size={20} />],
     ["Entregadores disponíveis", dashboard.driversAvailable, <UserRound size={20} />],
@@ -745,6 +747,20 @@ function DashboardPage(props: { showToast: (type: "success" | "error", message: 
         {cards.map(([label, value, icon]) => <MetricCard key={label} label={label} value={value} icon={icon} />)}
       </section>
       <section className="dashboard-grid">
+        <Panel title="Entregas por dia" subtitle="Entregas concluídas nos últimos 7 dias">
+          <DailyDeliveriesChart data={dashboard?.deliveredLastSevenDays ?? []} />
+        </Panel>
+        <Panel title="Distribuição por status" subtitle="Volume atual por etapa da entrega">
+          <StatusDistributionChart data={dashboard?.statusDistribution ?? []} />
+        </Panel>
+        <Panel title="Capacidade operacional" subtitle="Disponibilidade da equipe e da frota">
+          <div className="capacity-grid">
+            <CapacityItem label="Entregadores disponíveis" value={dashboard?.driversAvailable ?? 0} total={(dashboard?.driversAvailable ?? 0) + (dashboard?.driversBusy ?? 0) + (dashboard?.driversInactive ?? 0)} tone="success" />
+            <CapacityItem label="Entregadores em rota" value={dashboard?.driversBusy ?? 0} total={(dashboard?.driversAvailable ?? 0) + (dashboard?.driversBusy ?? 0) + (dashboard?.driversInactive ?? 0)} tone="warning" />
+            <CapacityItem label="Veículos disponíveis" value={dashboard?.vehiclesAvailable ?? 0} total={dashboard?.activeVehicles ?? 0} tone="success" />
+            <CapacityItem label="Veículos em uso" value={dashboard?.vehiclesInUse ?? 0} total={dashboard?.activeVehicles ?? 0} tone="warning" />
+          </div>
+        </Panel>
         <Panel title="Últimas entregas" subtitle="Atualizações mais recentes">
           <div className="timeline">
             {dashboard?.latestDeliveries.map((delivery) => (
@@ -760,14 +776,77 @@ function DashboardPage(props: { showToast: (type: "success" | "error", message: 
             {!dashboard?.latestDeliveries.length && <EmptyState text="Nenhuma entrega registrada ainda." />}
           </div>
         </Panel>
-        <Panel title="Entregas por dia" subtitle="Espaço reservado para gráfico analítico">
-          <div className="chart-placeholder">Gráfico diário</div>
-        </Panel>
         <Panel title="Mapa operacional" subtitle="Preparado para rastreamento futuro">
           <div className="map-placeholder"><MapPinned size={34} /> Mapa em breve</div>
         </Panel>
       </section>
     </>
+  );
+}
+
+function DailyDeliveriesChart(props: { data: DashboardOverview["deliveredLastSevenDays"] }) {
+  const maxValue = Math.max(1, ...props.data.map((item) => item.delivered));
+
+  return (
+    <div className="bar-chart" aria-label="Entregas concluidas nos ultimos 7 dias">
+      {props.data.map((item) => {
+        const height = Math.max(8, Math.round((item.delivered / maxValue) * 100));
+
+        return (
+          <div className="bar-chart-item" key={item.date}>
+            <div className="bar-track">
+              <span style={{ height: `${height}%` }} />
+            </div>
+            <strong>{item.delivered}</strong>
+            <small>{formatShortDate(item.date)}</small>
+          </div>
+        );
+      })}
+      {!props.data.length && <EmptyState text="Ainda não há entregas concluídas para montar o gráfico." />}
+    </div>
+  );
+}
+
+function StatusDistributionChart(props: { data: DashboardOverview["statusDistribution"] }) {
+  const total = props.data.reduce((sum, item) => sum + item.total, 0);
+
+  return (
+    <div className="status-chart">
+      {props.data.map((item) => {
+        const percent = total ? Math.round((item.total / total) * 100) : 0;
+
+        return (
+          <div className="status-chart-row" key={item.status}>
+            <div>
+              <StatusPill status={item.status} />
+              <strong>{item.total}</strong>
+            </div>
+            <div className="progress-track">
+              <span className={item.status.toLowerCase().replace("_", "-")} style={{ width: `${percent}%` }} />
+            </div>
+            <small>{percent}%</small>
+          </div>
+        );
+      })}
+      {!props.data.length && <EmptyState text="Sem dados suficientes para a distribuição." />}
+    </div>
+  );
+}
+
+function CapacityItem(props: { label: string; value: number; total: number; tone: "success" | "warning" | "danger" }) {
+  const percent = props.total ? Math.round((props.value / props.total) * 100) : 0;
+
+  return (
+    <div className="capacity-item">
+      <div>
+        <span>{props.label}</span>
+        <strong>{props.value}</strong>
+      </div>
+      <div className="progress-track">
+        <span className={props.tone} style={{ width: `${percent}%` }} />
+      </div>
+      <small>{percent}% do total</small>
+    </div>
   );
 }
 
@@ -1032,7 +1111,7 @@ function DeliveryPersonsPage(props: { role: Role; showToast: (type: "success" | 
                 <td>{person.phone}</td>
                 <td>{person.document}</td>
                 <td>{person.assignedVehicle ?? "Não atribuído"}</td>
-                <td>{deliveryPersonStatusLabel(person.status)}</td>
+                <td><AvailabilityPill tone={deliveryPersonStatusTone(person.status)}>{deliveryPersonStatusLabel(person.status)}</AvailabilityPill></td>
                 {props.role === "ADMIN" && (
                   <td>
                     <button className="danger-button" type="button" onClick={(event) => { event.stopPropagation(); deleteDeliveryPerson(person); }}>Excluir</button>
@@ -1136,7 +1215,7 @@ function VehiclesPage(props: { role: Role; showToast: (type: "success" | "error"
                 <td>{vehicle.licensePlate}</td>
                 <td>{vehicle.brand}</td>
                 <td>{vehicle.model}</td>
-                <td>{vehicleStatusLabel(vehicle)}</td>
+                <td><AvailabilityPill tone={vehicleStatusTone(vehicle)}>{vehicleStatusLabel(vehicle)}</AvailabilityPill></td>
                 {props.role === "ADMIN" && (
                   <td>
                     <button className="danger-button" type="button" onClick={(event) => { event.stopPropagation(); deleteVehicle(vehicle); }}>Excluir</button>
@@ -1447,12 +1526,20 @@ function StatusPill({ status }: { status: DeliveryStatus }) {
   return <span className={`status-pill ${status.toLowerCase().replace("_", "-")}`}>{statusLabels[status]}</span>;
 }
 
+function AvailabilityPill(props: { tone: "success" | "warning" | "danger"; children: ReactNode }) {
+  return <span className={`availability-pill ${props.tone}`}>{props.children}</span>;
+}
+
 function shortId(id: string) {
   return id.slice(0, 8);
 }
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(`${value}T00:00:00`));
 }
 
 function normalized(value: string) {
@@ -1487,11 +1574,23 @@ function deliveryPersonStatusLabel(status: DeliveryPerson["status"]) {
   return status === "AVAILABLE" ? "Disponível" : status === "ON_DELIVERY" ? "Em rota" : "Inativo";
 }
 
+function deliveryPersonStatusTone(status: DeliveryPerson["status"]) {
+  if (status === "AVAILABLE") return "success";
+  if (status === "ON_DELIVERY") return "warning";
+  return "danger";
+}
+
 function vehicleStatusLabel(vehicle: Vehicle) {
   if (!vehicle.active) return "Inativo";
   if (vehicle.status === "IN_USE") return "Em uso";
   if (vehicle.status === "MAINTENANCE") return "Manutenção";
   return "Disponível";
+}
+
+function vehicleStatusTone(vehicle: Vehicle) {
+  if (!vehicle.active) return "danger";
+  if (vehicle.status === "AVAILABLE") return "success";
+  return "warning";
 }
 
 function getErrorMessage(error: unknown) {
