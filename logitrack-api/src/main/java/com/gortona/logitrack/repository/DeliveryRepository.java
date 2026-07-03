@@ -2,6 +2,7 @@ package com.gortona.logitrack.repository;
 
 import com.gortona.logitrack.entity.Delivery;
 import com.gortona.logitrack.enums.DeliveryStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -17,6 +18,9 @@ public interface DeliveryRepository extends JpaRepository<Delivery, UUID> {
 	List<Delivery> findByOrderClientId(UUID clientId);
 
 	List<Delivery> findByDeliveryPersonId(UUID deliveryPersonId);
+
+	@EntityGraph(attributePaths = "vehicle")
+	List<Delivery> findByDeliveryPersonIdInAndStatusIn(List<UUID> deliveryPersonIds, List<DeliveryStatus> statuses);
 
 	List<Delivery> findByStatus(DeliveryStatus status);
 

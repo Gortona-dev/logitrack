@@ -15,12 +15,15 @@ import com.gortona.logitrack.repository.DeliveryRepository;
 import com.gortona.logitrack.repository.DeliveryPersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,9 +53,11 @@ public class DeliveryPersonService {
 
 	@Transactional(readOnly = true)
 	public List<DeliveryPersonResponse> findAll() {
-		return deliveryPersonRepository.findByActiveTrue()
-				.stream()
-				.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, findAssignedVehicle(deliveryPerson)))
+		List<DeliveryPerson> deliveryPersons = deliveryPersonRepository.findByActiveTrue();
+		Map<UUID, String> assignedVehicles = findAssignedVehicles(deliveryPersons);
+
+		return deliveryPersons.stream()
+				.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, assignedVehicles.get(deliveryPerson.getId())))
 				.toList();
 	}
 
@@ -62,14 +67,17 @@ public class DeliveryPersonService {
 		int safeSize = Math.clamp(size, 1, 50);
 		PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
 		String normalizedSearch = search == null ? "" : search.trim();
+		Page<DeliveryPerson> deliveryPersons;
 
 		if (normalizedSearch.isBlank()) {
-			return PageResponse.from(deliveryPersonRepository.findByActiveTrue(pageRequest)
-					.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, findAssignedVehicle(deliveryPerson))));
+			deliveryPersons = deliveryPersonRepository.findByActiveTrue(pageRequest);
+		} else {
+			deliveryPersons = deliveryPersonRepository.searchActive(normalizedSearch, pageRequest);
 		}
 
-		return PageResponse.from(deliveryPersonRepository.searchActive(normalizedSearch, pageRequest)
-				.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, findAssignedVehicle(deliveryPerson))));
+		Map<UUID, String> assignedVehicles = findAssignedVehicles(deliveryPersons.getContent());
+		return PageResponse.from(deliveryPersons
+				.map(deliveryPerson -> deliveryPersonMapper.toResponse(deliveryPerson, assignedVehicles.get(deliveryPerson.getId()))));
 	}
 
 	@Transactional
@@ -125,13 +133,25 @@ public class DeliveryPersonService {
 	}
 
 	private String findAssignedVehicle(DeliveryPerson deliveryPerson) {
-		return deliveryRepository.findByDeliveryPersonId(deliveryPerson.getId())
+		return findAssignedVehicles(List.of(deliveryPerson)).get(deliveryPerson.getId());
+	}
+
+	private Map<UUID, String> findAssignedVehicles(List<DeliveryPerson> deliveryPersons) {
+		List<UUID> deliveryPersonIds = deliveryPersons.stream()
+				.map(DeliveryPerson::getId)
+				.toList();
+
+		if (deliveryPersonIds.isEmpty()) {
+			return Map.of();
+		}
+
+		return deliveryRepository.findByDeliveryPersonIdInAndStatusIn(deliveryPersonIds, ACTIVE_DELIVERY_STATUSES)
 				.stream()
-				.filter(delivery -> ACTIVE_DELIVERY_STATUSES.contains(delivery.getStatus()))
-				.map(delivery -> delivery.getVehicle())
-				.filter(vehicle -> vehicle != null)
-				.findFirst()
-				.map(vehicle -> vehicle.getLicensePlate() + " - " + vehicle.getModel())
-				.orElse(null);
+				.filter(delivery -> delivery.getDeliveryPerson() != null && delivery.getVehicle() != null)
+				.collect(Collectors.toMap(
+						delivery -> delivery.getDeliveryPerson().getId(),
+						delivery -> delivery.getVehicle().getLicensePlate() + " - " + delivery.getVehicle().getModel(),
+						(current, ignored) -> current
+				));
 	}
 }
