@@ -8,6 +8,7 @@ import com.gortona.logitrack.repository.AppUserRepository;
 import com.gortona.logitrack.repository.ClientRepository;
 import com.gortona.logitrack.repository.DeliveryPersonRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ import java.util.Optional;
 
 @Configuration
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true")
 public class DevelopmentUserSeed {
 
 	private final AppUserRepository appUserRepository;

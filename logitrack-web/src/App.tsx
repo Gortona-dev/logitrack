@@ -726,7 +726,7 @@ function DashboardPage(props: { showToast: (type: "success" | "error", message: 
     }
   }
 
-  const cards = dashboard ? [
+  const cards = useMemo(() => dashboard ? [
     ["Pedidos totais", dashboard.totalOrders, <ClipboardList size={20} />],
     ["Pedidos pendentes", dashboard.pending, <ClipboardList size={20} />],
     ["Pedidos atribuídos", dashboard.assigned, <Route size={20} />],
@@ -738,7 +738,12 @@ function DashboardPage(props: { showToast: (type: "success" | "error", message: 
     ["Entregadores ocupados", dashboard.driversBusy, <UserRound size={20} />],
     ["Veículos ativos", dashboard.activeVehicles, <Truck size={20} />],
     ["Veículos em manutenção", dashboard.vehiclesInMaintenance, <Warehouse size={20} />],
-  ] as const : [];
+  ] as const : [], [dashboard]);
+  const driverTotal = useMemo(
+    () => (dashboard?.driversAvailable ?? 0) + (dashboard?.driversBusy ?? 0) + (dashboard?.driversInactive ?? 0),
+    [dashboard]
+  );
+  const vehicleTotal = dashboard?.activeVehicles ?? 0;
 
   return (
     <>
@@ -755,10 +760,10 @@ function DashboardPage(props: { showToast: (type: "success" | "error", message: 
         </Panel>
         <Panel title="Capacidade operacional" subtitle="Disponibilidade da equipe e da frota">
           <div className="capacity-grid">
-            <CapacityItem label="Entregadores disponíveis" value={dashboard?.driversAvailable ?? 0} total={(dashboard?.driversAvailable ?? 0) + (dashboard?.driversBusy ?? 0) + (dashboard?.driversInactive ?? 0)} tone="success" />
-            <CapacityItem label="Entregadores em rota" value={dashboard?.driversBusy ?? 0} total={(dashboard?.driversAvailable ?? 0) + (dashboard?.driversBusy ?? 0) + (dashboard?.driversInactive ?? 0)} tone="warning" />
-            <CapacityItem label="Veículos disponíveis" value={dashboard?.vehiclesAvailable ?? 0} total={dashboard?.activeVehicles ?? 0} tone="success" />
-            <CapacityItem label="Veículos em uso" value={dashboard?.vehiclesInUse ?? 0} total={dashboard?.activeVehicles ?? 0} tone="warning" />
+            <CapacityItem label="Entregadores disponíveis" value={dashboard?.driversAvailable ?? 0} total={driverTotal} tone="success" />
+            <CapacityItem label="Entregadores em rota" value={dashboard?.driversBusy ?? 0} total={driverTotal} tone="warning" />
+            <CapacityItem label="Veículos disponíveis" value={dashboard?.vehiclesAvailable ?? 0} total={vehicleTotal} tone="success" />
+            <CapacityItem label="Veículos em uso" value={dashboard?.vehiclesInUse ?? 0} total={vehicleTotal} tone="warning" />
           </div>
         </Panel>
         <Panel title="Últimas entregas" subtitle="Atualizações mais recentes">
@@ -785,7 +790,7 @@ function DashboardPage(props: { showToast: (type: "success" | "error", message: 
 }
 
 function DailyDeliveriesChart(props: { data: DashboardOverview["deliveredLastSevenDays"] }) {
-  const maxValue = Math.max(1, ...props.data.map((item) => item.delivered));
+  const maxValue = useMemo(() => Math.max(1, ...props.data.map((item) => item.delivered)), [props.data]);
 
   return (
     <div className="bar-chart" aria-label="Entregas concluidas nos ultimos 7 dias">
@@ -808,7 +813,7 @@ function DailyDeliveriesChart(props: { data: DashboardOverview["deliveredLastSev
 }
 
 function StatusDistributionChart(props: { data: DashboardOverview["statusDistribution"] }) {
-  const total = props.data.reduce((sum, item) => sum + item.total, 0);
+  const total = useMemo(() => props.data.reduce((sum, item) => sum + item.total, 0), [props.data]);
 
   return (
     <div className="status-chart">

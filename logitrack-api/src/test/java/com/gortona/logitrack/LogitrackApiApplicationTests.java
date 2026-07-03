@@ -1,5 +1,6 @@
 package com.gortona.logitrack;
 
+import jakarta.persistence.EntityManager;
 import com.gortona.logitrack.repository.ClientRepository;
 import com.gortona.logitrack.repository.AppUserRepository;
 import com.gortona.logitrack.repository.DeliveryPersonRepository;
@@ -34,6 +35,9 @@ class LogitrackApiApplicationTests {
 
 	@MockitoBean
 	private DeliveryStatusHistoryRepository deliveryStatusHistoryRepository;
+
+	@MockitoBean
+	private EntityManager entityManager;
 
 	@Test
 	void contextLoads() {
