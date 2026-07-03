@@ -4,7 +4,6 @@ import com.gortona.logitrack.dto.common.PageResponse;
 import com.gortona.logitrack.dto.deliveryperson.CreateDeliveryPersonRequest;
 import com.gortona.logitrack.dto.deliveryperson.DeliveryPersonResponse;
 import com.gortona.logitrack.dto.deliveryperson.UpdateDeliveryPersonRequest;
-import com.gortona.logitrack.entity.Delivery;
 import com.gortona.logitrack.entity.DeliveryPerson;
 import com.gortona.logitrack.enums.DeliveryStatus;
 import com.gortona.logitrack.exception.BusinessRuleException;
@@ -145,12 +144,11 @@ public class DeliveryPersonService {
 			return Map.of();
 		}
 
-		return deliveryRepository.findByDeliveryPersonIdInAndStatusIn(deliveryPersonIds, ACTIVE_DELIVERY_STATUSES)
+		return deliveryRepository.findAssignedVehiclesByDeliveryPersonIds(deliveryPersonIds, ACTIVE_DELIVERY_STATUSES)
 				.stream()
-				.filter(delivery -> delivery.getDeliveryPerson() != null && delivery.getVehicle() != null)
 				.collect(Collectors.toMap(
-						delivery -> delivery.getDeliveryPerson().getId(),
-						delivery -> delivery.getVehicle().getLicensePlate() + " - " + delivery.getVehicle().getModel(),
+						DeliveryRepository.AssignedVehicleProjection::getDeliveryPersonId,
+						DeliveryRepository.AssignedVehicleProjection::getVehicleLabel,
 						(current, ignored) -> current
 				));
 	}

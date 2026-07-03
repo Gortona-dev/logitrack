@@ -2,8 +2,8 @@ package com.gortona.logitrack.repository;
 
 import com.gortona.logitrack.entity.Delivery;
 import com.gortona.logitrack.enums.DeliveryStatus;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,8 +19,15 @@ public interface DeliveryRepository extends JpaRepository<Delivery, UUID> {
 
 	List<Delivery> findByDeliveryPersonId(UUID deliveryPersonId);
 
-	@EntityGraph(attributePaths = "vehicle")
-	List<Delivery> findByDeliveryPersonIdInAndStatusIn(List<UUID> deliveryPersonIds, List<DeliveryStatus> statuses);
+	@Query("""
+			select d.deliveryPerson.id as deliveryPersonId,
+				concat(v.licensePlate, ' - ', v.model) as vehicleLabel
+			from Delivery d
+			join d.vehicle v
+			where d.deliveryPerson.id in :deliveryPersonIds
+				and d.status in :statuses
+			""")
+	List<AssignedVehicleProjection> findAssignedVehiclesByDeliveryPersonIds(List<UUID> deliveryPersonIds, List<DeliveryStatus> statuses);
 
 	List<Delivery> findByStatus(DeliveryStatus status);
 
@@ -37,4 +44,10 @@ public interface DeliveryRepository extends JpaRepository<Delivery, UUID> {
 	long countByStatusAndUpdatedAtBetween(DeliveryStatus status, java.time.OffsetDateTime start, java.time.OffsetDateTime end);
 
 	List<Delivery> findTop5ByOrderByUpdatedAtDesc();
+
+	interface AssignedVehicleProjection {
+		UUID getDeliveryPersonId();
+
+		String getVehicleLabel();
+	}
 }
