@@ -13,10 +13,10 @@ Sistema full stack para gestao logistica de clientes, entregadores, veiculos, pe
 - Frontend: Vercel.
 - Banco de dados recomendado: Supabase PostgreSQL.
 
-O backend le a variavel `DATABASE_URL` em producao. Para Supabase, use uma connection string PostgreSQL com SSL quando disponivel:
+O backend le a variavel `DATABASE_URL` em producao. Para Supabase no Render, prefira a connection string do Shared Pooler em session mode:
 
 ```text
-postgresql://usuario:senha@host:5432/postgres?sslmode=require
+postgres://usuario:senha@aws-regiao.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 
 Nunca versione a senha do banco no Git. Configure `DATABASE_URL` apenas no painel do Render.

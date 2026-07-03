@@ -10,7 +10,7 @@ Este projeto usa PostgreSQL com Flyway. Para manter o portfolio em servicos grat
 
 1. Crie um projeto no Supabase.
 2. Abra `Project Settings` > `Database`.
-3. Copie a connection string PostgreSQL.
+3. Clique em `Connect` e copie a connection string do `Shared Pooler` em `Session mode`.
 4. No Render, abra o servico `logitrack-api`.
 5. Va em `Environment`.
 6. Edite `DATABASE_URL` com a connection string do Supabase.
@@ -22,5 +22,5 @@ Este projeto usa PostgreSQL com Flyway. Para manter o portfolio em servicos grat
 
 - Nao coloque a connection string no Git.
 - O Flyway cria as tabelas automaticamente no primeiro deploy.
-- Para projetos Java/Spring, prefira a connection string PostgreSQL direta ou pooler compativel com JDBC.
+- Para Render no plano free, prefira o `Shared Pooler` em `Session mode`, porque a doc do Supabase indica esse modo para backends persistentes em redes IPv4.
 - Se a URL do Supabase incluir `?sslmode=require`, o backend preserva esse parametro.
