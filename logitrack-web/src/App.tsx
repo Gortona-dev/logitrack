@@ -1,7 +1,10 @@
 import {
   BarChart3,
   Boxes,
+  CircleHelp,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
   LogOut,
   MapPinned,
   Moon,
@@ -17,6 +20,7 @@ import {
   UserRound,
   UsersRound,
   Warehouse,
+  X,
 } from "lucide-react";
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { api } from "./services/api";
@@ -35,6 +39,11 @@ import type {
 
 type Toast = { type: "success" | "error"; message: string } | null;
 type Theme = "light" | "dark";
+type TourStep = {
+  title: string;
+  text: string;
+  route?: string;
+};
 type Session = {
   token: string;
   role: Role;
@@ -84,6 +93,97 @@ const routes: RouteConfig[] = [
   { path: "/configuracoes", label: "Configurações", icon: <Settings size={18} />, roles: ["ADMIN", "OPERADOR", "ENTREGADOR", "CLIENTE"] },
 ];
 
+const onboardingStepsByRole: Record<Role, TourStep[]> = {
+  ADMIN: [
+    {
+      title: "Visao geral da operacao",
+      text: "O Dashboard resume pedidos, entregadores, veiculos e entregas recentes. Use esta tela para entender rapidamente a saude da operacao.",
+      route: "/dashboard",
+    },
+    {
+      title: "Usuarios e acessos",
+      text: "Na aba Usuarios voce cadastra administradores, operadores, clientes e entregadores. Clientes e entregadores ganham vinculo operacional automaticamente.",
+      route: "/usuarios",
+    },
+    {
+      title: "Cadastro operacional",
+      text: "Clientes, entregadores e veiculos ficam separados para facilitar filtros, edicao e manutencao dos dados usados nos pedidos.",
+      route: "/clientes",
+    },
+    {
+      title: "Pedidos e entregas",
+      text: "Em Pedidos voce cria solicitacoes, atribui entregador e veiculo, acompanha status e consulta o historico completo da entrega.",
+      route: "/pedidos",
+    },
+    {
+      title: "Preferencias da conta",
+      text: "Em Configuracoes voce atualiza seus dados e alterna entre tema claro e escuro. As preferencias ficam salvas neste navegador.",
+      route: "/configuracoes",
+    },
+  ],
+  OPERADOR: [
+    {
+      title: "Rotina operacional",
+      text: "A aba Pedidos e o centro do operador: crie pedidos, filtre registros, atribua entregadores e avance o status da entrega.",
+      route: "/pedidos",
+    },
+    {
+      title: "Base de clientes",
+      text: "Use Clientes para consultar e editar os dados de quem solicita entregas. A pesquisa filtra enquanto voce digita.",
+      route: "/clientes",
+    },
+    {
+      title: "Entregadores disponiveis",
+      text: "Em Entregadores voce acompanha disponibilidade, telefone, documento e veiculo vinculado antes de atribuir uma entrega.",
+      route: "/entregadores",
+    },
+    {
+      title: "Frota em uso",
+      text: "Em Veiculos voce identifica placas, modelos e status. Veiculos em uso ou manutencao nao devem entrar em novas atribuicoes.",
+      route: "/veiculos",
+    },
+    {
+      title: "Seu perfil",
+      text: "Em Configuracoes ficam tema, nome, documento e telefone do usuario logado.",
+      route: "/configuracoes",
+    },
+  ],
+  ENTREGADOR: [
+    {
+      title: "Suas entregas",
+      text: "Minhas entregas mostra somente os pedidos vinculados a voce. Selecione uma entrega para ver rota, status e historico.",
+      route: "/minhas-entregas",
+    },
+    {
+      title: "Atualizacao de status",
+      text: "Quando uma entrega estiver liberada, avance as etapas como Coletado, Em transito e Entregue. Cada alteracao gera historico.",
+      route: "/minhas-entregas",
+    },
+    {
+      title: "Dados pessoais",
+      text: "Em Configuracoes voce mantem telefone e documento atualizados para a equipe operacional.",
+      route: "/configuracoes",
+    },
+  ],
+  CLIENTE: [
+    {
+      title: "Rastreamento",
+      text: "A aba Rastreamento mostra seus pedidos e o andamento da entrega sem expor dados internos da operacao.",
+      route: "/rastreamento",
+    },
+    {
+      title: "Meus pedidos",
+      text: "Use Meus pedidos para revisar entregas, rota, status atual e historico de movimentacao.",
+      route: "/meus-pedidos",
+    },
+    {
+      title: "Perfil do cliente",
+      text: "Em Configuracoes voce atualiza nome, documento, telefone e preferencia de tema.",
+      route: "/configuracoes",
+    },
+  ],
+};
+
 const nextStatuses: Partial<Record<DeliveryStatus, DeliveryStatus[]>> = {
   PENDING: ["CANCELLED"],
   ASSIGNED: ["PICKED_UP", "CANCELLED"],
@@ -103,6 +203,7 @@ function App() {
   const [theme, setTheme] = useState<Theme>(() => (window.localStorage.getItem("logitrack.theme") as Theme | null) ?? "light");
   const [path, setPath] = useState(() => window.location.pathname === "/" ? "/dashboard" : window.location.pathname);
   const [toast, setToast] = useState<Toast>(null);
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     const onPopState = () => setPath(window.location.pathname);
@@ -145,6 +246,13 @@ function App() {
     }
   }, [authChecked, session, path]);
 
+  useEffect(() => {
+    if (!authChecked || !session) return;
+    if (!window.localStorage.getItem(onboardingStorageKey(session.role))) {
+      setTourOpen(true);
+    }
+  }, [authChecked, session?.role]);
+
   function navigate(nextPath: string) {
     window.history.pushState({}, "", nextPath);
     setPath(nextPath);
@@ -168,7 +276,19 @@ function App() {
     window.localStorage.removeItem("logitrack.token");
     window.localStorage.removeItem("logitrack.role");
     setSession(null);
+    setTourOpen(false);
     navigate("/login");
+  }
+
+  function startTour() {
+    setTourOpen(true);
+  }
+
+  function finishTour(markAsSeen = true) {
+    if (session && markAsSeen) {
+      window.localStorage.setItem(onboardingStorageKey(session.role), "true");
+    }
+    setTourOpen(false);
   }
 
   if (!authChecked) {
@@ -193,11 +313,20 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar session={session} path={path} navigate={navigate} logout={logout} />
+      <Sidebar session={session} path={path} navigate={navigate} logout={logout} startTour={startTour} />
       <main className="workspace">
         {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
         <PageRouter path={path} role={session.role} session={session} setSession={setSession} theme={theme} setTheme={setTheme} showToast={showToast} />
       </main>
+      {tourOpen && (
+        <OnboardingTour
+          role={session.role}
+          currentPath={path}
+          navigate={navigate}
+          onClose={() => finishTour(false)}
+          onFinish={() => finishTour(true)}
+        />
+      )}
     </div>
   );
 }
@@ -276,7 +405,7 @@ function LoginPage(props: {
   );
 }
 
-function Sidebar(props: { session: Session; path: string; navigate: (path: string) => void; logout: () => void }) {
+function Sidebar(props: { session: Session; path: string; navigate: (path: string) => void; logout: () => void; startTour: () => void }) {
   const allowedRoutes = routes.filter((route) => props.session && route.roles.includes(props.session.role));
 
   return (
@@ -306,7 +435,71 @@ function Sidebar(props: { session: Session; path: string; navigate: (path: strin
         <span>Sessão segura</span>
         <strong><LogOut size={14} /> Sair</strong>
       </button>
+      <button className="tour-entry-button" onClick={props.startTour} type="button">
+        <CircleHelp size={16} />
+        Guia da plataforma
+      </button>
     </aside>
+  );
+}
+
+function OnboardingTour(props: {
+  role: Role;
+  currentPath: string;
+  navigate: (path: string) => void;
+  onClose: () => void;
+  onFinish: () => void;
+}) {
+  const steps = onboardingStepsByRole[props.role];
+  const [stepIndex, setStepIndex] = useState(0);
+  const activeStep = steps[stepIndex];
+  const isFirst = stepIndex === 0;
+  const isLast = stepIndex === steps.length - 1;
+
+  useEffect(() => {
+    if (activeStep.route && activeStep.route !== props.currentPath) {
+      props.navigate(activeStep.route);
+    }
+  }, [activeStep.route, props.currentPath]);
+
+  function previousStep() {
+    setStepIndex((current) => Math.max(0, current - 1));
+  }
+
+  function nextStep() {
+    if (isLast) {
+      props.onFinish();
+      return;
+    }
+    setStepIndex((current) => Math.min(steps.length - 1, current + 1));
+  }
+
+  return (
+    <div className="tour-layer" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+      <div className="tour-card">
+        <button className="tour-close" type="button" aria-label="Fechar guia" onClick={props.onClose}>
+          <X size={16} />
+        </button>
+        <div className="tour-kicker">Guia do {roleLabels[props.role]}</div>
+        <h2 id="tour-title">{activeStep.title}</h2>
+        <p>{activeStep.text}</p>
+        {activeStep.route && (
+          <span className="tour-route">Tela atual: {routes.find((route) => route.path === activeStep.route)?.label ?? activeStep.route}</span>
+        )}
+        <div className="tour-footer">
+          <span>Passo {stepIndex + 1} de {steps.length}</span>
+          <div className="tour-actions">
+            <button className="ghost-button" type="button" onClick={previousStep} disabled={isFirst}>
+              <ChevronLeft size={16} /> Anterior
+            </button>
+            <button className="primary-button" type="button" onClick={nextStep}>
+              {isLast ? "Concluir" : "Proximo"} {!isLast && <ChevronRight size={16} />}
+            </button>
+          </div>
+        </div>
+        <button className="tour-skip" type="button" onClick={props.onFinish}>Nao mostrar novamente</button>
+      </div>
+    </div>
   );
 }
 
@@ -1264,6 +1457,10 @@ function formatDate(value: string) {
 
 function normalized(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function onboardingStorageKey(role: Role) {
+  return `logitrack.onboarding.${role}.done`;
 }
 
 function onlyDigits(value: string, maxLength = 20) {
