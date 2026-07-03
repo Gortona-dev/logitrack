@@ -23,10 +23,21 @@ public class LogitrackApiApplication {
 			return;
 		}
 
+		if (databaseUrl.startsWith("jdbc:")) {
+			System.setProperty("spring.datasource.url", databaseUrl);
+			return;
+		}
+
 		URI uri = URI.create(databaseUrl);
+		if (uri.getUserInfo() == null) {
+			System.setProperty("spring.datasource.url", databaseUrl);
+			return;
+		}
+
 		String[] credentials = uri.getUserInfo().split(":", 2);
 		String port = uri.getPort() > 0 ? ":" + uri.getPort() : "";
-		String jdbcUrl = "jdbc:postgresql://" + uri.getHost() + port + uri.getPath();
+		String query = uri.getQuery() == null ? "" : "?" + uri.getQuery();
+		String jdbcUrl = "jdbc:postgresql://" + uri.getHost() + port + uri.getPath() + query;
 
 		System.setProperty("spring.datasource.url", jdbcUrl);
 		System.setProperty("spring.datasource.username", decode(credentials[0]));

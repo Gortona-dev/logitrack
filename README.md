@@ -1,13 +1,27 @@
 # LogiTrack
 
-Sistema full stack para gestão logística de clientes, entregadores, veículos, pedidos e entregas.
+Sistema full stack para gestao logistica de clientes, entregadores, veiculos, pedidos e entregas.
 
 ## Projetos
 
 - `logitrack-api`: API REST em Java 21 com Spring Boot, PostgreSQL, Flyway e JWT.
 - `logitrack-web`: interface web em React com Vite.
 
-## Execução local
+## Hospedagem
+
+- Backend: Render Web Service.
+- Frontend: Vercel.
+- Banco de dados recomendado: Supabase PostgreSQL.
+
+O backend le a variavel `DATABASE_URL` em producao. Para Supabase, use uma connection string PostgreSQL com SSL quando disponivel:
+
+```text
+postgresql://usuario:senha@host:5432/postgres?sslmode=require
+```
+
+Nunca versione a senha do banco no Git. Configure `DATABASE_URL` apenas no painel do Render.
+
+## Execucao local
 
 Backend:
 
@@ -24,10 +38,11 @@ npm install
 npm run dev
 ```
 
-## Variáveis principais
+## Variaveis principais
 
 Backend:
 
+- `DATABASE_URL`
 - `DB_URL`
 - `DB_USERNAME`
 - `DB_PASSWORD`
