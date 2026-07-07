@@ -22,7 +22,7 @@ import {
   Warehouse,
   X,
 } from "lucide-react";
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { Children, cloneElement, FormEvent, isValidElement, ReactElement, ReactNode, useEffect, useMemo, useState } from "react";
 import { api } from "./services/api";
 import type {
   Client,
@@ -1570,11 +1570,26 @@ function SearchBox(props: { value: string; onChange: (value: string) => void; pl
 }
 
 function DataTable(props: { headers: string[]; children: ReactNode }) {
+  const rows = Children.map(props.children, (row) => {
+    if (!isValidElement(row)) return row;
+
+    const rowElement = row as ReactElement<{ children?: ReactNode }>;
+    const cells = Children.map(rowElement.props.children, (cell, index) => {
+      if (!isValidElement(cell)) return cell;
+
+      return cloneElement(cell as ReactElement<{ "data-label"?: string }>, {
+        "data-label": props.headers[index] ?? "",
+      });
+    });
+
+    return cloneElement(rowElement, undefined, cells);
+  });
+
   return (
     <div className="table-wrap">
       <table>
         <thead><tr>{props.headers.map((header) => <th key={header}>{header}</th>)}</tr></thead>
-        <tbody>{props.children}</tbody>
+        <tbody>{rows}</tbody>
       </table>
     </div>
   );
