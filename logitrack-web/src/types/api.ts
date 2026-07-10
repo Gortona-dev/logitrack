@@ -108,6 +108,12 @@ export interface DeliveryHistory {
 export interface LoginResponse {
   token: string;
   role: Role;
+  name: string;
+  email: string;
+  document: string | null;
+  phone: string | null;
+  clientId: string | null;
+  deliveryPersonId: string | null;
 }
 
 export interface MeResponse {

@@ -33,6 +33,7 @@ import type {
   MeResponse,
   Order,
   Role,
+  LoginResponse,
   User,
   Vehicle,
 } from "./types/api";
@@ -263,11 +264,10 @@ function App() {
     window.setTimeout(() => setToast(null), 4200);
   }
 
-  async function login(token: string) {
-    window.localStorage.setItem("logitrack.token", token);
+  async function login(response: LoginResponse) {
+    window.localStorage.setItem("logitrack.token", response.token);
     window.localStorage.removeItem("logitrack.role");
-    const me = await api.me();
-    const nextSession = sessionFromMe(token, me);
+    const nextSession = sessionFromLogin(response);
     setSession(nextSession);
     navigate(defaultRouteByRole[nextSession.role]);
   }
@@ -344,8 +344,21 @@ function sessionFromMe(token: string, me: MeResponse): NonNullable<Session> {
   };
 }
 
+function sessionFromLogin(response: LoginResponse): NonNullable<Session> {
+  return {
+    token: response.token,
+    role: response.role,
+    name: response.name,
+    email: response.email,
+    document: response.document,
+    phone: response.phone,
+    clientId: response.clientId,
+    deliveryPersonId: response.deliveryPersonId,
+  };
+}
+
 function LoginPage(props: {
-  onLogin: (token: string) => Promise<void>;
+  onLogin: (response: LoginResponse) => Promise<void>;
   showToast: (type: "success" | "error", message: string) => void;
   toast: Toast;
 }) {
@@ -357,7 +370,7 @@ function LoginPage(props: {
     setLoading(true);
     try {
       const response = await api.login(form);
-      await props.onLogin(response.token);
+      await props.onLogin(response);
     } catch (error) {
       props.showToast("error", getErrorMessage(error));
     } finally {

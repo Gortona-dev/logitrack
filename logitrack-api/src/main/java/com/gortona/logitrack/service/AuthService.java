@@ -36,7 +36,16 @@ public class AuthService {
 				.filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPassword()))
 				.orElseThrow(() -> new UnauthorizedException("Email ou senha inválidos"));
 
-		return new LoginResponse(jwtService.generateToken(user), user.getRole());
+		return new LoginResponse(
+				jwtService.generateToken(user),
+				user.getRole(),
+				user.getName(),
+				user.getEmail(),
+				user.getDocument(),
+				user.getPhone(),
+				user.getClientId(),
+				user.getDeliveryPersonId()
+		);
 	}
 
 	@Transactional(readOnly = true)
