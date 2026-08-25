@@ -1,0 +1,24 @@
+name: Keep Supabase Awake
+
+on:
+  schedule:
+    - cron: "0 11 */2 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping LogiTrack database health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call database health endpoint
+        run: |
+          curl --fail --show-error --location --max-time 120 \
+            "https://logitrack-api-etd1.onrender.com/api/v1/health/db"
+
+      - name: Call application health endpoint
+        if: always()
+        run: |
+          curl --show-error --location --max-time 120 \
+            "https://logitrack-api-etd1.onrender.com/api/v1/health"
