@@ -17,6 +17,7 @@ import type {
 } from "../types/api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 25000);
 
 const fieldLabels: Record<string, string> = {
   brand: "marca",
@@ -38,14 +39,29 @@ const fieldLabels: Record<string, string> = {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = window.localStorage.getItem("logitrack.token");
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Tempo limite excedido ao conectar com a API. O backend pode estar iniciando.");
+    }
+
+    throw new Error("Nao foi possivel conectar com a API. Verifique se o backend esta disponivel.");
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 
   const text = await response.text();
   let payload: ApiResponse<T> | ApiErrorResponse | null = null;
@@ -58,7 +74,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!response.ok || !payload?.success) {
     const errorPayload = payload as ApiErrorResponse;
-    const fieldMessage = errorPayload?.fieldErrors
+    const fieldErrors = Array.isArray(errorPayload?.fieldErrors) ? errorPayload.fieldErrors : [];
+    const fieldMessage = fieldErrors
       ?.map((item) => `${fieldLabels[item.field] ?? item.field}: ${item.message}`)
       .join("; ");
     throw new Error(fieldMessage || errorPayload?.message || `Falha na requisição (${response.status})`);
