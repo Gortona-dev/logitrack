@@ -140,16 +140,17 @@ O frontend normalmente ficara disponivel em:
 http://localhost:5173
 ```
 
-## Usuarios de Teste
+## Acesso de Demonstracao
 
-Se o seed de desenvolvimento estiver ativo, estes usuarios podem ser usados:
+O projeto possui seed opcional para criar usuarios locais de teste durante desenvolvimento. Em producao, nao publique credenciais administrativas no README, no frontend ou em commits.
 
-| Perfil | Email | Senha |
-| --- | --- | --- |
-| Admin | admin@logitrack.com | admin123 |
-| Operador | operador@logitrack.com | operador123 |
-| Entregador | entregador@logitrack.com | entregador123 |
-| Cliente | cliente@logitrack.com | cliente123 |
+Para exibir credenciais de demonstracao no frontend local, configure:
+
+```text
+VITE_SHOW_DEMO_CREDENTIALS=true
+```
+
+Em ambientes publicos, mantenha essa variavel ausente ou com valor `false`.
 
 ## Scripts Uteis
 
@@ -179,3 +180,7 @@ Em producao, nunca versionar senhas no Git. Configure `DATABASE_URL`, credenciai
 ## Autor
 
 Desenvolvido por [Gabriel Ortona](https://github.com/Gortona-dev).
+
+## Licenca
+
+Codigo disponibilizado para fins de portfolio e avaliacao tecnica. Todos os direitos reservados ao autor. Consulte o arquivo [LICENSE](LICENSE) antes de reutilizar qualquer parte deste projeto.

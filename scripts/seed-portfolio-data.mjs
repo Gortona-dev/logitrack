@@ -1,7 +1,11 @@
 const API = process.env.LOGITRACK_API_URL ?? "https://logitrack-api-etd1.onrender.com";
 const ADMIN_EMAIL = process.env.LOGITRACK_ADMIN_EMAIL ?? "admin@logitrack.com";
-const ADMIN_PASSWORD = process.env.LOGITRACK_ADMIN_PASSWORD ?? "admin123";
+const ADMIN_PASSWORD = process.env.LOGITRACK_ADMIN_PASSWORD;
 const seed = Date.now().toString().slice(-6);
+
+if (!ADMIN_PASSWORD) {
+  throw new Error("Configure LOGITRACK_ADMIN_PASSWORD antes de executar o seed.");
+}
 
 async function request(path, options = {}, token) {
   const controller = new AbortController();

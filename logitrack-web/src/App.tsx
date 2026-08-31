@@ -197,6 +197,16 @@ const emptyDeliveryPerson = { name: "", email: "", document: "", phone: "" };
 const emptyVehicle = { licensePlate: "", brand: "", model: "" };
 const emptyOrder = { clientId: "", pickupAddress: "", deliveryAddress: "", description: "" };
 const emptyUser = { name: "", email: "", password: "", role: "CLIENTE" as Role, document: "", phone: "" };
+const showDemoCredentials = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === "true";
+const demoCredentials = [
+  { label: "Admin", email: import.meta.env.VITE_DEMO_ADMIN_EMAIL, password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD },
+  { label: "Operador", email: import.meta.env.VITE_DEMO_OPERATOR_EMAIL, password: import.meta.env.VITE_DEMO_OPERATOR_PASSWORD },
+  { label: "Entregador", email: import.meta.env.VITE_DEMO_DELIVERY_EMAIL, password: import.meta.env.VITE_DEMO_DELIVERY_PASSWORD },
+  { label: "Cliente", email: import.meta.env.VITE_DEMO_CLIENT_EMAIL, password: import.meta.env.VITE_DEMO_CLIENT_PASSWORD },
+].filter((credential) => credential.email && credential.password);
+const defaultLoginForm = showDemoCredentials && demoCredentials.length > 0
+  ? { email: demoCredentials[0].email, password: demoCredentials[0].password }
+  : { email: "", password: "" };
 
 function App() {
   const [session, setSession] = useState<Session>(null);
@@ -362,7 +372,7 @@ function LoginPage(props: {
   showToast: (type: "success" | "error", message: string) => void;
   toast: Toast;
 }) {
-  const [form, setForm] = useState({ email: "admin@logitrack.com", password: "admin123" });
+  const [form, setForm] = useState(defaultLoginForm);
   const [loading, setLoading] = useState(false);
 
   async function submit(event: FormEvent) {
@@ -391,7 +401,7 @@ function LoginPage(props: {
         </div>
         <div>
           <h1>Entrar no sistema</h1>
-          <p>Use um perfil de teste para acessar as áreas protegidas da plataforma.</p>
+          <p>{showDemoCredentials ? "Use um perfil de teste para acessar as áreas protegidas da plataforma." : "Acesse com as credenciais fornecidas pelo administrador da plataforma."}</p>
         </div>
         <form className="stack-form" onSubmit={submit}>
           <label>
@@ -406,13 +416,14 @@ function LoginPage(props: {
             <ShieldCheck size={16} /> {loading ? "Validando..." : "Entrar"}
           </button>
         </form>
-        <div className="login-hints">
-          <strong>Perfis para teste</strong>
-          <span>admin@logitrack.com / admin123</span>
-          <span>operador@logitrack.com / operador123</span>
-          <span>entregador@logitrack.com / entregador123</span>
-          <span>cliente@logitrack.com / cliente123</span>
-        </div>
+        {showDemoCredentials && demoCredentials.length > 0 && (
+          <div className="login-hints">
+            <strong>Perfis para teste</strong>
+            {demoCredentials.map((credential) => (
+              <span key={credential.label}>{credential.label}: {credential.email} / {credential.password}</span>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

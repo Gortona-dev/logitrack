@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.text.Normalizer;
@@ -28,6 +29,7 @@ public class DevelopmentUserSeed {
 	private final ClientRepository clientRepository;
 	private final DeliveryPersonRepository deliveryPersonRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final Environment environment;
 
 	@Bean
 	public CommandLineRunner seedDefaultUsers() {
@@ -50,12 +52,21 @@ public class DevelopmentUserSeed {
 							"11999990002"
 					)));
 
-			upsertUser("Administrador", "admin@logitrack.com", "admin123", Role.ADMIN, null, null, "00000000000", "11999990000");
-			upsertUser("Operador", "operador@logitrack.com", "operador123", Role.OPERADOR, null, null, "00000000010", "11999990010");
-			upsertUser("Entregador Teste", "entregador@logitrack.com", "entregador123", Role.ENTREGADOR, null, deliveryPerson, deliveryPerson.getDocument(), deliveryPerson.getPhone());
-			upsertUser("Cliente Teste", "cliente@logitrack.com", "cliente123", Role.CLIENTE, client, null, client.getDocument(), client.getPhone());
+			upsertUser("Administrador", "admin@logitrack.com", seedPassword("APP_SEED_ADMIN_PASSWORD"), Role.ADMIN, null, null, "00000000000", "11999990000");
+			upsertUser("Operador", "operador@logitrack.com", seedPassword("APP_SEED_OPERATOR_PASSWORD"), Role.OPERADOR, null, null, "00000000010", "11999990010");
+			upsertUser("Entregador Teste", "entregador@logitrack.com", seedPassword("APP_SEED_DELIVERY_PASSWORD"), Role.ENTREGADOR, null, deliveryPerson, deliveryPerson.getDocument(), deliveryPerson.getPhone());
+			upsertUser("Cliente Teste", "cliente@logitrack.com", seedPassword("APP_SEED_CLIENT_PASSWORD"), Role.CLIENTE, client, null, client.getDocument(), client.getPhone());
 			resetExistingUsersPasswords();
 		};
+	}
+
+	private String seedPassword(String propertyName) {
+		String password = environment.getProperty(propertyName);
+		if (password == null || password.isBlank()) {
+			throw new IllegalStateException("Configure " + propertyName + " para executar o seed de desenvolvimento.");
+		}
+
+		return password;
 	}
 
 	private Optional<Client> findSeedClient() {
