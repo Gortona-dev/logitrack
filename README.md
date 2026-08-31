@@ -1,78 +1,181 @@
+<div align="center">
+
 # LogiTrack
 
-Sistema full stack para gestao logistica de clientes, entregadores, veiculos, pedidos e entregas.
+Sistema full stack para gestao logistica, com API Java/Spring Boot, frontend React e banco PostgreSQL.
 
-## Projetos
+![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=0f172a)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 
-- `logitrack-api`: API REST em Java 21 com Spring Boot, PostgreSQL, Flyway e JWT.
-- `logitrack-web`: interface web em React com Vite.
+[Frontend online](https://logitrack-web.vercel.app/login)
 
-## Hospedagem
+</div>
 
-- Backend: Render Web Service.
-- Frontend: Vercel.
-- Banco de dados recomendado: Supabase PostgreSQL.
+---
 
-O backend le a variavel `DATABASE_URL` em producao. Para Supabase no Render, use a connection string do `Shared Pooler` em `Session mode`, copiada diretamente do dashboard do seu projeto:
+## Objetivo
+
+O LogiTrack foi criado para centralizar a gestao de uma operacao logistica em uma aplicacao web. O sistema permite controlar clientes, entregadores, veiculos, pedidos, entregas, usuarios e indicadores operacionais em um unico painel.
+
+A ideia principal e transformar uma rotina que normalmente depende de planilhas e controles manuais em um fluxo mais organizado, seguro e rastreavel.
+
+## Funcionalidades
+
+- Autenticacao com JWT.
+- Controle de usuarios e perfis de acesso.
+- Cadastro e manutencao de clientes.
+- Cadastro e manutencao de entregadores.
+- Cadastro e manutencao de veiculos.
+- Registro de pedidos.
+- Atribuicao e acompanhamento de entregas.
+- Historico de status das entregas.
+- Dashboard operacional com indicadores.
+- Codigos amigaveis para facilitar identificacao de registros.
+- Migracoes de banco com Flyway.
+- API documentada com OpenAPI/Swagger.
+
+## Tecnologias
+
+| Camada | Tecnologias |
+| --- | --- |
+| Backend | Java 21, Spring Boot, Spring Security, Spring Data JPA |
+| Banco de dados | PostgreSQL, Flyway |
+| Frontend | React, TypeScript, Vite |
+| Autenticacao | JWT |
+| Deploy | Render, Vercel, Supabase PostgreSQL |
+
+## Estrutura
 
 ```text
-postgresql://postgres.PROJECT_REF:SENHA@HOST_DO_POOLER:5432/postgres?sslmode=require
+logitrack/
++-- logitrack-api/       API REST em Java com Spring Boot
++-- logitrack-web/       Interface web em React + Vite
++-- docs/                Documentacao auxiliar de deploy
++-- scripts/             Scripts auxiliares
++-- render.yaml          Configuracao de deploy no Render
++-- vercel.json          Configuracao de deploy
 ```
 
-Importante:
+## Como Rodar Localmente
 
-- O host do pooler deve ser copiado do Supabase. Nao assuma `aws-0`, porque a regiao pode usar outro host.
-- No Supavisor, o usuario deve ter o formato `postgres.PROJECT_REF`.
-- Se aparecer `tenant/user ... not found`, a `DATABASE_URL` do Render esta apontando para usuario, project ref ou host de pooler incorreto.
-- Para o plano gratuito, o pool do backend fica pequeno por padrao para reduzir risco de esgotar conexoes.
+### Requisitos
 
-Nunca versione a senha do banco no Git. Configure `DATABASE_URL` apenas no painel do Render.
+- Java 21
+- Node.js 18+
+- npm
+- PostgreSQL local ou banco PostgreSQL remoto
 
-## Execucao local
+### 1. Clonar o repositorio
 
-Backend:
+```bash
+git clone https://github.com/Gortona-dev/logitrack.git
+cd logitrack
+```
+
+### 2. Configurar o backend
+
+Entre na pasta da API:
 
 ```bash
 cd logitrack-api
-DB_PASSWORD=sua_senha ./mvnw spring-boot:run
 ```
 
-Frontend:
+Crie um arquivo `.env` ou configure variaveis de ambiente equivalentes. Use `.env.example` como base.
+
+Principais variaveis:
+
+```text
+DATABASE_URL=jdbc:postgresql://localhost:5432/logitrack
+DB_USERNAME=postgres
+DB_PASSWORD=sua_senha
+JWT_SECRET=sua_chave_secreta
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+```
+
+Execute a API:
+
+```bash
+./mvnw spring-boot:run
+```
+
+No Windows:
+
+```bash
+mvnw.cmd spring-boot:run
+```
+
+A API ficara disponivel em:
+
+```text
+http://localhost:8080
+```
+
+### 3. Configurar o frontend
+
+Em outro terminal:
 
 ```bash
 cd logitrack-web
 npm install
+```
+
+Crie um arquivo `.env` com:
+
+```text
+VITE_API_URL=http://localhost:8080
+```
+
+Execute:
+
+```bash
 npm run dev
 ```
 
-## Variaveis principais
+O frontend normalmente ficara disponivel em:
+
+```text
+http://localhost:5173
+```
+
+## Usuarios de Teste
+
+Se o seed de desenvolvimento estiver ativo, estes usuarios podem ser usados:
+
+| Perfil | Email | Senha |
+| --- | --- | --- |
+| Admin | admin@logitrack.com | admin123 |
+| Operador | operador@logitrack.com | operador123 |
+| Entregador | entregador@logitrack.com | entregador123 |
+| Cliente | cliente@logitrack.com | cliente123 |
+
+## Scripts Uteis
 
 Backend:
 
-- `DATABASE_URL`
-- `DB_URL`
-- `DB_USERNAME`
-- `DB_PASSWORD`
-- `JWT_SECRET`
-- `CORS_ALLOWED_ORIGINS`
+```bash
+./mvnw test
+./mvnw spring-boot:run
+```
 
 Frontend:
 
-- `VITE_API_URL`
-
-## Perfis de teste
-
-- `admin@logitrack.com` / `admin123`
-- `operador@logitrack.com` / `operador123`
-- `entregador@logitrack.com` / `entregador123`
-- `cliente@logitrack.com` / `cliente123`
-
-## Keep-alive gratuito
-
-O workflow `.github/workflows/keep-supabase-awake.yml` chama o endpoint publico `/api/v1/health/db` a cada 2 dias para reduzir pausas por inatividade no Supabase Free e acordar o backend no Render.
-
-Endpoint:
-
-```text
-https://logitrack-api-etd1.onrender.com/api/v1/health/db
+```bash
+npm run dev
+npm run build
+npm run preview
 ```
+
+## Deploy
+
+- Frontend: Vercel.
+- Backend: Render Web Service.
+- Banco recomendado: Supabase PostgreSQL.
+
+Em producao, nunca versionar senhas no Git. Configure `DATABASE_URL`, credenciais do banco e `JWT_SECRET` diretamente nos paineis de deploy.
+
+## Autor
+
+Desenvolvido por [Gabriel Ortona](https://github.com/Gortona-dev).
